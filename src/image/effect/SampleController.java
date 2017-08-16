@@ -21,10 +21,13 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ColorPicker;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 
 public class SampleController implements Initializable {
@@ -42,7 +45,13 @@ public class SampleController implements Initializable {
 	private CheckBox checkBox;
 
 	@FXML
-	private Slider Rbar, Gbar, Bbar, blurBar;
+	private Slider Rbar, Gbar, Bbar, blurBar, effectBar;
+
+	@FXML
+	ColorPicker colorPicker;
+
+	@FXML
+	ComboBox<String> comboBox;
 
 	Mat mat = new Mat();
 	Mat original = new Mat();
@@ -63,6 +72,39 @@ public class SampleController implements Initializable {
 	 }
 
 	 @FXML
+	 public void effectBarChanged(MouseEvent event) {
+		 apllyBaseProcess(original, mat); /* 基本効果だけ適用した画像を再作成 */
+		 double value = effectBar.getValue();
+
+		 if( 0 < value ) {
+			 String effect = comboBox.getValue();
+			 System.out.println(effect);
+
+			switch (effect) {
+			case "Oil paint":
+				 Imgproc.pyrMeanShiftFiltering(mat, mat, 10,30);
+				break;
+
+			case "Line drawing":
+				ImageProcessor.toEdgeImage(mat, mat, true);
+				break;
+
+			case "Cartoon": /* アニメ画 */
+				 Mat edge = mat.clone();
+				 Imgproc.pyrMeanShiftFiltering(mat, mat, 10,30);
+				 ImageProcessor.toEdgeImage(edge, edge, false);
+				 Core.subtract(mat, edge, mat);
+
+			case "None":
+			default:
+				break;
+			}
+		 }
+		 base = mat.clone(); /* 以降画像効果を引き継げるようbaseにコピー */
+		 imageView.setImage(ImageProcessor.toImage(mat));
+	 }
+
+	 @FXML
 	 public void baseBarsChanged(MouseEvent event) {
 		 apllyBaseProcess(base, mat);
 	 }
@@ -71,14 +113,7 @@ public class SampleController implements Initializable {
 	 public void test(ActionEvent event) {
 		 apllyBaseProcess(original, mat); /* 基本効果だけ適用した画像を再作成 */
 
-		 /* アニメ画 */
-		 Mat edge = mat.clone();
-		 Imgproc.pyrMeanShiftFiltering(mat, mat, 10,30);
-		 ImageProcessor.toEdgeImage(edge, edge, false);
-		 Core.subtract(mat, edge, mat);
 
-		 base = mat.clone(); /* 以降画像効果を引き継げるようbaseにコピー */
-		 imageView.setImage(ImageProcessor.toImage(mat));
 		 System.out.println("test");
 	 }
 
@@ -105,7 +140,13 @@ public class SampleController implements Initializable {
 	 @FXML
 	 public void onChecked(ActionEvent event) {
 		clockLabel.setVisible(checkBox.isSelected());
+		colorPicker.setVisible(checkBox.isSelected());
 	 }
+	 @FXML
+	 public void onClockColorChanged(ActionEvent event) {
+		 clockLabel.setTextFill(colorPicker.getValue());
+	 }
+
 
 	 final ExecutorService exec = Executors.newCachedThreadPool();
 	 public void launchClock() {
@@ -123,10 +164,18 @@ public class SampleController implements Initializable {
 	 }
 
 
+
 	@Override
 	public void initialize(URL arg0, ResourceBundle arg1) {
 		//clockLabel.setText(LocalDateTime.now().toString());
 		launchClock();
+		colorPicker.setValue(Color.BLACK);
+		comboBox.getItems().addAll(
+			    "None",
+			    "Oil paint",
+			    "Line drawing",
+			    "Cartoon"
+			);
 	}
 
 
