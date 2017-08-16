@@ -1,12 +1,15 @@
-package image.clock;
+package image.effect;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ResourceBundle;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import javax.imageio.ImageIO;
 
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
@@ -55,6 +58,11 @@ public class SampleController implements Initializable {
 	 }
 
 	 @FXML
+	 public void saveImage(ActionEvent event) {
+		 Imgcodecs.imwrite("C:\\image.bmp", mat);
+	 }
+
+	 @FXML
 	 public void baseBarsChanged(MouseEvent event) {
 		 apllyBaseProcess(base, mat);
 	 }
@@ -62,7 +70,13 @@ public class SampleController implements Initializable {
 	 @FXML
 	 public void test(ActionEvent event) {
 		 apllyBaseProcess(original, mat); /* 基本効果だけ適用した画像を再作成 */
+
+		 /* アニメ画 */
+		 Mat edge = mat.clone();
 		 Imgproc.pyrMeanShiftFiltering(mat, mat, 10,30);
+		 ImageProcessor.toEdgeImage(edge, edge, false);
+		 Core.subtract(mat, edge, mat);
+
 		 base = mat.clone(); /* 以降画像効果を引き継げるようbaseにコピー */
 		 imageView.setImage(ImageProcessor.toImage(mat));
 		 System.out.println("test");
@@ -73,7 +87,14 @@ public class SampleController implements Initializable {
 
 		 File file = fileChooser.showOpenDialog(null);
          if (file != null) {
-        	mat = Imgcodecs.imread(file.getAbsolutePath());
+        	try {
+        		/* Imgcodecs.imreadを用いて読み込むと、日本語のパスを扱えないため */
+        		mat = ImageProcessor.toMat(ImageIO.read(file));
+				//mat = Imgcodecs.imread(new String(file.getPath().getBytes("UTF-16"),"UTF-16"));
+			} catch ( IOException e) {
+				e.printStackTrace();
+			}
+
         	original = mat.clone();
         	base = mat.clone();
         	imageView.setImage(ImageProcessor.toImage(mat));
@@ -94,23 +115,11 @@ public class SampleController implements Initializable {
         				 format(DateTimeFormatter.ofPattern("MM/dd HH:mm:ss"))));
         		 try {
  					Thread.sleep(1000);
- 					System.out.println("thread");
  				} catch (InterruptedException e) {
  					e.printStackTrace();
  				}
         	 }
 		 });
-		 /* java fx cannot use naitive thread
-		 new Thread( () -> {
-        	 while(true) {
-        		 try {
-					Thread.sleep(1000);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-        		clockLabel.setText(LocalDateTime.now().toString());
-        	 }
-         } ).run();*/
 	 }
 
 

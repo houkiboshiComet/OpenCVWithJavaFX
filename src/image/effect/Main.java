@@ -1,4 +1,4 @@
-package image.clock;
+package image.effect;
 
 import org.opencv.core.Core;
 

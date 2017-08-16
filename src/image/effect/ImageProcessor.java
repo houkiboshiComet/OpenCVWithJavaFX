@@ -1,5 +1,7 @@
-package image.clock;
+package image.effect;
 
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
 import java.io.ByteArrayInputStream;
 
 import org.opencv.core.Core;
@@ -27,9 +29,22 @@ public class ImageProcessor {
 	 }
 
 	 public static Image toImage(Mat mat) {
-		 MatOfByte byteMat = new MatOfByte();
+		MatOfByte byteMat = new MatOfByte();
 	  	Imgcodecs.imencode(".bmp", mat, byteMat);
 	  	return new Image(new ByteArrayInputStream(byteMat.toArray()));
+	 }
+	 public static Mat toMat(BufferedImage image) {
+		 Mat mat = new Mat(image.getHeight(),image.getWidth(), CvType.CV_8UC3);
+		 byte[] pixels = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
+		 mat.put(0,0,pixels);
+		 return mat;
+	 }
+
+	 public static void toEdgeImage(Mat src, Mat dst, boolean blackEdge) {
+		 Imgproc.cvtColor(src, dst, Imgproc.COLOR_RGB2GRAY);
+		 Imgproc.Canny(dst, dst, 80, 100);
+		 if( blackEdge ) { Core.bitwise_not(dst,dst); }
+		 Imgproc.cvtColor(dst, dst, Imgproc.COLOR_GRAY2RGB);
 	 }
 
 	 public static void filter(Mat src, Mat dst, int bulerLevel) {
