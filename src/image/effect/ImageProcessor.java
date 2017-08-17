@@ -8,6 +8,7 @@ import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
+import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
@@ -47,6 +48,59 @@ public class ImageProcessor {
 		 Imgproc.cvtColor(dst, dst, Imgproc.COLOR_GRAY2RGB);
 	 }
 
+	 public static void gammaCorrection(Mat src, Mat dst, double gamma ) {
+		 Mat lut = new Mat(1, 256, CvType.CV_8UC1);
+		 //lut.setTo(new Scalar(0));
+
+		 for (int i = 0; i < 256; i++) {
+		    	lut.put(0, i, Math.pow((double)(1.0 * i/255), 1/gamma) * 255);
+		 }
+		 Core.LUT(src, lut, dst);
+	 }
+
+	 public static void glow(Mat src, Mat dst) {
+		 Mat blur = new Mat(src.height(),src.width(), CvType.CV_8UC3);
+		 gammaCorrection(src, blur, 2.0);
+		 /*
+		 Mat kernel = new Mat(7,7,CvType.CV_32F);
+		 for(int i = 0;  i <  7; i ++) {
+			 for(int j = 0;  j <  7; j++) {
+				 kernel.put(i, j, 0.019 );
+			 }
+		 }*/
+		 Imgproc.GaussianBlur(src, blur, new Size(9,9), 20.0);
+		 for(int y = 0; y < src.height(); y++) {
+				for(int x = 0; x < src.width(); x++) {
+					double rgb_src[] = src.get(y, x);
+					double rgb_blur[] = blur.get(y, x);
+					if( rgb_src[0] < rgb_blur[0] ) {
+						rgb_src[0] = rgb_blur[0];
+					}
+					if( rgb_src[1] < rgb_blur[1] ) {
+						rgb_src[1] = rgb_blur[1];
+					}
+					if( rgb_src[2] < rgb_blur[2] ) {
+						rgb_src[2] = rgb_blur[2];
+					}
+					dst.put(y, x, rgb_src);
+					/*
+					if( rgb_src[0] + rgb_src[1] + rgb_src[2]
+							> rgb_blur[0] +rgb_blur[1] + rgb_blur[2] ) {
+						dst.put(y, x, rgb_src);
+					} else {
+						dst.put(y, x, rgb_blur);
+					}*/
+				}
+			}
+	 }
+
+	 public static void toCartoon(Mat src, Mat dst, int value) {
+		 Imgproc.pyrMeanShiftFiltering(src, dst, 10,30);
+		 Mat edge = dst.clone();
+		 ImageProcessor.toEdgeImage(edge, edge, false);
+		 Core.subtract(dst, edge, dst);
+	 }
+
 	 public static void filter(Mat src, Mat dst, int bulerLevel) {
 		 Mat kernel = new Mat(7,7,CvType.CV_32F);
 
@@ -57,7 +111,6 @@ public class ImageProcessor {
 			 for(int j = 0;  j <  7; j++) {
 				 if( i == 3 && j == 3 ) {
 					 kernel.put(i, j, centerWeight);
-					 System.out.println(centerWeight);
 				 } else if(
 					 i >= 2 && i <= 4 &&
 					 j >= 2 && j <= 4 ) {

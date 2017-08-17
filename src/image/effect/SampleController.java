@@ -89,11 +89,13 @@ public class SampleController implements Initializable {
 				ImageProcessor.toEdgeImage(mat, mat, true);
 				break;
 
-			case "Cartoon": /* アニメ画 */
-				 Mat edge = mat.clone();
-				 Imgproc.pyrMeanShiftFiltering(mat, mat, 10,30);
-				 ImageProcessor.toEdgeImage(edge, edge, false);
-				 Core.subtract(mat, edge, mat);
+			case "Cartoon":
+				ImageProcessor.toCartoon(mat, mat,10);
+				break;
+
+			case "Glow":
+				ImageProcessor.glow(mat, mat);
+				break;
 
 			case "None":
 			default:
@@ -174,7 +176,8 @@ public class SampleController implements Initializable {
 			    "None",
 			    "Oil paint",
 			    "Line drawing",
-			    "Cartoon"
+			    "Cartoon",
+			    "Glow"
 			);
 	}
 
