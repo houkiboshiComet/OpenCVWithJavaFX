@@ -5,4 +5,7 @@ This application provide image processing methods and simple clock.
 
 Usage
 --------------
-You should setup the OpenCV library (version 3.x), following this page <http://opencv-java-tutorials.readthedocs.io/en/latest/01-installing-opencv-for-java.html>.
+You should setup the OpenCV library (version 3.3)
+And, add fllowing directory to the path system environment variable.
+"[OpenCV3.3InstallDir]\opencv3.3\opencv\build\java\x86" or
+"[OpenCV3.3InstallDir]\opencv3.3\opencv\build\java\x64"
