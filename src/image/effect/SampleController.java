@@ -3,6 +3,9 @@ package image.effect;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ResourceBundle;
@@ -15,9 +18,9 @@ import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Scalar;
-import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
+import org.opencv.photo.Photo;
 
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -32,6 +35,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
+import javafx.stage.FileChooser.ExtensionFilter;
 
 public class SampleController implements Initializable {
 
@@ -39,7 +43,7 @@ public class SampleController implements Initializable {
 	static{ System.loadLibrary(Core.NATIVE_LIBRARY_NAME);}
 
 	@FXML
-	private ImageView imageView;
+	private ImageView imageView, stampView;
 
 	@FXML
 	private Label clockLabel;
@@ -62,28 +66,90 @@ public class SampleController implements Initializable {
 	private Mat mat = new Mat();
 	private Mat original = new Mat();
 	private Mat base = new Mat();
+	private Mat allStamp = null;
+	private Mat allStampBack = null;
 
-	private Mat goodStamp, twinckeStamp, smileStamp;
-
+	private Mat goodStamp, twinckeStamp, smileStamp, heartStamp;
+	private Mat starShape;
 
 	final FileChooser fileChooser = new FileChooser();
 
 	 private void apllyBaseProcess(Mat src, Mat dst) {
 		 ImageProcessor.convert(src, dst, Rbar.getValue() - 128,  Gbar.getValue() - 128, Bbar.getValue() - 128);
 		 ImageProcessor.filter(dst, dst, (int) blurBar.getValue());
-	  	 imageView.setImage(ImageProcessor.toImage(mat));
+		 updateImage();
 	 }
 
 	 @FXML
 	 public void saveImage(ActionEvent event) {
-		 Imgcodecs.imwrite("C:\\image.bmp", mat);
+		 fileChooser.getExtensionFilters().clear();
+		 fileChooser.getExtensionFilters().addAll(
+		         new ExtensionFilter("Bitmap Image", "*.bmp")
+		         );
+		 File file = fileChooser.showSaveDialog(null);
+		 fileChooser.setInitialDirectory(file.getParentFile());
+		 if(file != null) {
+			 Mat saveImg = mat.clone();
+			 ImageProcessor.synthesize(mat, saveImg, allStamp, allStampBack, 50);
 
-
+			 /* Imgcodecs.imwriteを用いると、utf-16の日本語のパスを扱えないため */
+ 	 		try {
+ 	 			Imgcodecs.imwrite("temp.bmp",saveImg);
+				Files.copy(Paths.get("temp.bmp"),file.toPath(),StandardCopyOption.REPLACE_EXISTING);
+				Files.delete(Paths.get("temp.bmp"));
+			} catch (IOException e) {
+				// TODO 自動生成された catch ブロック
+				e.printStackTrace();
+			}
+		 }
 	 }
 
 	 @FXML
 	 public void onReset(ActionEvent event) {
+		 resetStamp();
 		 reset();
+	 }
+
+	 @FXML
+	 public void onResetStamp(ActionEvent event) {
+		 resetStamp();
+		 updateImage();
+	 }
+
+	 @FXML
+	 public void stampSelected(ActionEvent event) {
+		 switch (stampTypes.getValue()) {
+		 case "Smile":
+			 stampView.setImage(ImageProcessor.toImage(smileStamp));
+			 stampView.setVisible(true);
+
+			 break;
+		 case "Twinkle":
+			 stampView.setImage(ImageProcessor.toImage(twinckeStamp));
+			 stampView.setVisible(true);
+			 break;
+
+		 case "Good":
+			 stampView.setImage(ImageProcessor.toImage(goodStamp));
+			 stampView.setVisible(true);
+			 break;
+
+		 case "Heart":
+			 stampView.setImage(ImageProcessor.toImage(heartStamp));
+			 stampView.setVisible(true);
+			 break;
+
+		 case "None":
+		 default:
+			 stampView.setVisible(false);
+			 break;
+		 }
+	 }
+
+
+	 public void resetStamp() {
+		allStamp = new Mat(mat.size(),CvType.CV_8UC3, new Scalar(255,255,255));
+     	allStampBack = new Mat(mat.size(),CvType.CV_8UC3, new Scalar(0,0,0));
 	 }
 
 	 private void reset() {
@@ -92,7 +158,6 @@ public class SampleController implements Initializable {
 		 Gbar.setValue(128);
 		 blurBar.setValue(0);
 
-		 //comboBox.setValue("None");
 		 effectBar.setValue(0);
 		 base = original.clone();
 		 apllyBaseProcess(base, mat);
@@ -117,16 +182,34 @@ public class SampleController implements Initializable {
 						(int) (( event.getX() / imageView.getFitWidth()) * mat.width() - (goodStamp.cols() / 2)),
 						(int) (( event.getY() / imageView.getFitHeight()) * mat.height()- (goodStamp.rows() / 2)));
 			 break;
+
+		 case "Heart":
+			 png = ImageProcessor.extend(heartStamp, mat.size(),
+						(int) (( event.getX() / imageView.getFitWidth()) * mat.width() - (heartStamp.cols() / 2)),
+						(int) (( event.getY() / imageView.getFitHeight()) * mat.height()- (heartStamp.rows() / 2)));
+
+			 break;
 		 case "None":
 		 default:
 			 return;
 		 }
-
 		 Mat splitedStamp = new Mat();
 		 Mat back = new Mat();
 		 ImageProcessor.split(png, splitedStamp, back);
-		 ImageProcessor.synthesize(mat, mat, splitedStamp, back);
-		 imageView.setImage(ImageProcessor.toImage(mat));
+		 ImageProcessor.synthesize(allStamp, allStamp, splitedStamp, back, 0);
+		 Core.add(allStampBack, back, allStampBack);
+
+		 updateImage();
+	 }
+
+	 private void updateImage() {
+		 Mat dispImage = mat.clone();
+		 ImageProcessor.synthesize(mat, dispImage, allStamp, allStampBack, 50);
+		 imageView.setImage(ImageProcessor.toImage(dispImage));
+	 }
+	 @FXML
+	 public void effectBoxChanged(ActionEvent event) {
+		 effectBarChanged(null);
 	 }
 
 	 @FXML
@@ -139,36 +222,36 @@ public class SampleController implements Initializable {
 			 System.out.println(effect);
 
 			switch (effect) {
-			case "Oil paint":
-				 Imgproc.pyrMeanShiftFiltering(mat, mat, 10,30);
+			case "Sketchi":
+				Photo.pencilSketch(mat, mat, mat, (float) (0.7 *(50.0 + value)) , (float) (0.0007 *(50.0 + value)), (float) (0.001 * (150.0 - value)));
 				break;
 
-			case "Line drawing":
-				ImageProcessor.toEdgeImage(mat, mat, true);
+			case "Oil paint":
+				Imgproc.pyrMeanShiftFiltering(mat, mat, (value / 4.0), (value / 2.0));
+				break;
+
+			case "Black Pencil":
+				ImageProcessor.toEdgeImage(mat, mat, true,  200 - (int) value);
+				break;//toEdgeColorImage
+
+			case "Color Pencil":
+				ImageProcessor.toEdgeColorImage(mat, mat,  200 - (int) value);
 				break;
 
 			case "Cartoon":
-				ImageProcessor.toCartoon(mat, mat,10);
+				ImageProcessor.toCartoon(mat, mat, (int) (value / 4.0));
 				break;
 
 			case "Glow":
-				ImageProcessor.glow(mat, mat);
-				break;
-
-			case "Glow Red":
-				ImageProcessor.glow(mat, mat, 2);
-				break;
-
-			case "Glow Green":
-				ImageProcessor.glow(mat, mat, 1);
-				break;
-
-			case "Glow Blue":
-				ImageProcessor.glow(mat, mat, 0);
+				ImageProcessor.glow(mat, mat,(int)(value / 10.0));
 				break;
 
 			case "Sepia":
-				ImageProcessor.warm(mat,mat);
+				ImageProcessor.warm(mat,mat, value / 100.0);
+				break;
+
+			case "Stars":
+				ImageProcessor.addStars(mat,mat,starShape,(int) (value / 2.0));
 				break;
 
 			case "None":
@@ -177,7 +260,7 @@ public class SampleController implements Initializable {
 			}
 		 }
 		 base = mat.clone(); /* 以降画像効果を引き継げるようbaseにコピー */
-		 imageView.setImage(ImageProcessor.toImage(mat));
+		 updateImage();
 	 }
 
 	 @FXML
@@ -186,60 +269,29 @@ public class SampleController implements Initializable {
 	 }
 
 	 @FXML
-	 public void test(ActionEvent event) {
-		 apllyBaseProcess(original, mat); /* 基本効果だけ適用した画像を再作成 */
-		 Mat bmp = Imgcodecs.imread("C:\\star.bmp");
-		 Mat matrix = new Mat(2,3,CvType.CV_32F);
-
-		 for(int i  = 0; i < 10; i++ ) {
-			Mat star = bmp.clone();
-			Mat stars = new Mat(mat.size(),CvType.CV_32FC3);
-			double size = 2.0 * Math.random();
-			double angle = Math.PI * Math.random();
-			matrix.put(0, 0, size * Math.cos(angle));
-			matrix.put(0, 1, 0  * - Math.sin(angle));
-			matrix.put(1, 0, 0  * Math.sin(angle));
-			matrix.put(1, 1, size * Math.cos(angle));
-			matrix.put(0, 2, Math.random() * mat.cols());
-			matrix.put(1, 2, Math.random() * mat.rows());
-			ImageProcessor.convert(star, star, -150 *  Math.random(), -150 * Math.random(),-150 * Math.random());
-			Imgproc.GaussianBlur(star, star, new Size(9,9), 10);
-			Imgproc.warpAffine(star,stars, matrix, stars.size(), Imgproc.INTER_LINEAR, Core.BORDER_TRANSPARENT, new Scalar(0,0,0,0) );
-			Core.add(mat, stars, mat);
-		 }
-		 /* snow
-		 for(int i  = 0; i < 10; i++ ) {
-			matrix.put(0, 0, Math.random() + 0.5);
-			matrix.put(0, 1, Math.random());
-			matrix.put(1, 0, Math.random() );
-			matrix.put(1, 1, Math.random() + 0.5);
-
-			matrix.put(0, 2, Math.random() * mat.cols());
-		 	matrix.put(1, 2, Math.random() * mat.rows());
-		 	ImageProcessor.convert(star, star, -10, -10,-10);
-		 	Imgproc.warpAffine(star,stars, matrix, stars.size(), Imgproc.INTER_LINEAR, Core.BORDER_TRANSPARENT, new Scalar(0,0,0,0) );
-		 }
-		 Imgproc.GaussianBlur(stars, stars, new Size(9,9), 10);
-		 Core.add(mat, stars, mat);
-		 */
-		 imageView.setImage(ImageProcessor.toImage(mat));
-
-		 System.out.println("test");
-	 }
-
-	 @FXML
 	 public void imageSelect(ActionEvent event) {
+		 fileChooser.getExtensionFilters().clear();
+		 fileChooser.getExtensionFilters().addAll(
+		         new ExtensionFilter("Image Files", "*.png", "*.jpg", "*.bmp")
+		         );
 
 		 File file = fileChooser.showOpenDialog(null);
+		 fileChooser.setInitialDirectory(file.getParentFile());
          if (file != null) {
-        	try {
-        		/* Imgcodecs.imreadを用いて読み込むと、日本語のパスを扱えないため */
-        		mat = ImageProcessor.toMat(ImageIO.read(file));
-				//mat = Imgcodecs.imread(new String(file.getPath().getBytes("UTF-16"),"UTF-16"));
-			} catch ( IOException e) {
-				e.printStackTrace();
-			}
+
+        	 try {
+        		/* Imgcodecs.imreadを用いて読み込むと、utf-16の日本語のパスを扱えないため */
+        	 		Files.copy(file.toPath(), Paths.get("temp.bmp"),StandardCopyOption.REPLACE_EXISTING);
+					mat = Imgcodecs.imread("temp.bmp",1);
+					Files.delete(Paths.get("temp.bmp"));
+				} catch ( IOException e) {
+					// TODO 自動生成された catch ブロック
+					e.printStackTrace();
+				}
+
         	original = mat.clone();
+        	allStamp = new Mat(mat.size(),CvType.CV_8UC3, new Scalar(255,255,255));
+        	allStampBack = new Mat(mat.size(),CvType.CV_8UC3, new Scalar(0,0,0));
         	reset();
          }
 
@@ -280,14 +332,17 @@ public class SampleController implements Initializable {
 		colorPicker.setValue(Color.BLACK);
 		comboBox.getItems().addAll(
 			    "None",
+			    "Sketchi",
 			    "Oil paint",
-			    "Line drawing",
+			    "Black Pencil",
+			    "Color Pencil",
 			    "Cartoon",
 			    "Glow",
-			    "Glow Red",
-			    "Glow Green",
-			    "Glow Blue",
-			    "Sepia"
+			    //"Glow Red",
+			    //"Glow Green",
+			    //"Glow Blue",
+			    "Sepia",
+			    "Stars"
 			);
 		comboBox.setValue("None");
 
@@ -295,6 +350,7 @@ public class SampleController implements Initializable {
 			    "None",
 			    "Smile",
 			    "Twinkle",
+			    "Heart",
 			    "Good"
 			);
 		stampTypes.setValue("None");
@@ -311,9 +367,17 @@ public class SampleController implements Initializable {
 
 			url=  getClass().getClassLoader().getResource("smile.png");
 			smileStamp = ImageProcessor.toPng(ImageIO.read(url));
+
+			url=  getClass().getClassLoader().getResource("star.bmp");
+			starShape =  ImageProcessor.toMat(ImageIO.read(url));
+
+			url=  getClass().getClassLoader().getResource("heart.bmp");
+			heartStamp =  ImageProcessor.toPng(ImageIO.read(url));
+
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+
 	}
 
 

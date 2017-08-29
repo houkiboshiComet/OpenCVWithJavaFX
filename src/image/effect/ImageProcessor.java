@@ -37,12 +37,14 @@ public class ImageProcessor {
 	  	Imgcodecs.imencode(".bmp", mat, byteMat);
 	  	return new Image(new ByteArrayInputStream(byteMat.toArray()));
 	 }
+
 	 public static Mat toMat(BufferedImage image) {
 		 Mat mat = new Mat(image.getHeight(),image.getWidth(), CvType.CV_8UC3);
 		 byte[] pixels = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
 		 mat.put(0,0,pixels);
 		 return mat;
 	 }
+
 	 public static Mat toPng(BufferedImage image) {
 		 Mat mat = toMat(image);
 		 Mat transpalent = new Mat(image.getHeight(),image.getWidth(), CvType.CV_8U, new Scalar(255));
@@ -64,11 +66,23 @@ public class ImageProcessor {
 	 }
 
 
-	 public static void toEdgeImage(Mat src, Mat dst, boolean blackEdge) {
+	 public static void toEdgeImage(Mat src, Mat dst, boolean blackEdge, int threah) {
 		 Imgproc.cvtColor(src, dst, Imgproc.COLOR_RGB2GRAY);
-		 Imgproc.Canny(dst, dst, 80, 100);
+		 Imgproc.Canny(dst, dst, threah, threah * 1.5);
 		 if( blackEdge ) { Core.bitwise_not(dst,dst); }
 		 Imgproc.cvtColor(dst, dst, Imgproc.COLOR_GRAY2RGB);
+	 }
+
+	 public static void toEdgeColorImage(Mat src, Mat dst, int threah) {
+		if(src == dst) {
+			src = src.clone();
+		}
+		 Imgproc.cvtColor(src, dst, Imgproc.COLOR_RGB2GRAY);
+		 Imgproc.Canny(dst, dst, threah, threah * 1.5);
+		 Imgproc.cvtColor(dst, dst, Imgproc.COLOR_GRAY2RGB);
+		 Core.bitwise_not(dst,dst);
+
+		 Core.add(src, dst, dst);
 	 }
 
 	 public static void gammaCorrection(Mat src, Mat dst, double gamma ) {
@@ -80,25 +94,30 @@ public class ImageProcessor {
 		 Core.LUT(src, lut, dst);
 	 }
 
-	 public static void warm(Mat src, Mat dst) {
-		 //ImageProcessor. Mat blur = new Mat(src.height(),src.width(), CvType.CV_8UC3);
-		 //Imgproc.GaussianBlur(src, blur, new Size(11,11), 100.0);
+	 public static void warm(Mat src, Mat dst, double ratio) {
+
+		double warmWeight = ratio;
+		double srcWeight = (1.0 - ratio);
 
 		 for(int y = 0; y < src.height(); y++) {
 				for(int x = 0; x < src.width(); x++) {
 					double rgb[] = src.get(y, x);
-					double gray = rgb[0] * 0.1 + rgb[1] * 0.6 + rgb[2] * 0.2;
-					rgb[0] = rgb[0] * 0.5 + gray * 0.4;
-					rgb[1] = rgb[1] * 0.5 + gray * 0.5;
-					rgb[2] = rgb[2] * 0.5 + gray * 0.8;
+					double gray = rgb[0] * 0.1 + rgb[1] * 0.6 + rgb[2] * 0.3;
+					rgb[0] = rgb[0] * srcWeight + gray * warmWeight * 0.7;
+					rgb[1] = rgb[1] * srcWeight + gray * warmWeight * 0.8;
+					rgb[2] = rgb[2] * srcWeight + gray * warmWeight * 1.4;
 					dst.put(y, x, rgb);
 				}
 		 }
 	 }
 
-	 public static void glow(Mat src, Mat dst, int rgb) {
+	 public static void glow(Mat src, Mat dst, int rgb, int intensity) {
 		 Mat blur = new Mat(src.height(),src.width(), CvType.CV_8UC3);
-		 Imgproc.GaussianBlur(src, blur, new Size(11,11), 100.0);
+
+		 int size = Math.max(1, intensity);
+		 size = size * 2 + 1;
+
+		 Imgproc.GaussianBlur(src, blur, new Size(size, size), intensity * 10);
 
 		 for(int y = 0; y < src.height(); y++) {
 				for(int x = 0; x < src.width(); x++) {
@@ -113,11 +132,17 @@ public class ImageProcessor {
 	 }
 
 
-	 public static void glow(Mat src, Mat dst) {
+	 public static void glow(Mat src, Mat dst, int intensity) {
 		 Mat blur = new Mat(src.height(),src.width(), CvType.CV_8UC3);
-		 gammaCorrection(src, blur, 2.0);
 
-		 Imgproc.GaussianBlur(src, blur, new Size(9,9), 20.0);
+		 double gamma = Math.pow(4.0, 1.0 / (double) intensity);
+
+		 gammaCorrection(src, blur, gamma);
+
+		 int size = Math.max(1, intensity);
+		 size = size * 2 + 1;
+		 Imgproc.GaussianBlur(src, blur, new Size(size, size), intensity * 10);
+
 		 for(int y = 0; y < src.height(); y++) {
 				for(int x = 0; x < src.width(); x++) {
 					double rgb_src[] = src.get(y, x);
@@ -144,9 +169,9 @@ public class ImageProcessor {
 	 }
 
 	 public static void toCartoon(Mat src, Mat dst, int value) {
-		 Imgproc.pyrMeanShiftFiltering(src, dst, 7,20);
+		 Imgproc.pyrMeanShiftFiltering(src, dst, value, value * 2);
 		 Mat edge = dst.clone();
-		 ImageProcessor.toEdgeImage(edge, edge, false);
+		 ImageProcessor.toEdgeImage(edge, edge, false, 80);
 		 Core.subtract(dst, edge, dst);
 	 }
 
@@ -163,10 +188,11 @@ public class ImageProcessor {
 		 return result;
 	 }
 
-	 public static void synthesize(Mat src, Mat dst, Mat stamp, Mat filter ) {
+	 public static void synthesize(Mat src, Mat dst, Mat stamp, Mat filter, int transparent ) {
 		 Core.multiply(stamp, filter, stamp, 1.0 /255);
 		 Mat not = new Mat();
 		 Core.bitwise_not(filter, not);
+		 Core.add(not, new Scalar(transparent,transparent,transparent), not);
 		 Core.multiply(src, not, dst, 1.0 /255);
 		 Core.add(dst,stamp,dst);
 	 }
@@ -185,6 +211,29 @@ public class ImageProcessor {
 		 list.add(rgba.get(1));
 		 list.add(rgba.get(2));
 		 Core.merge(list, rgb);
+	 }
+
+	 public static void addStars(Mat src, Mat dst, Mat shape, int count ) {
+		 Mat matrix = new Mat(2,3,CvType.CV_32F);
+		 src.copyTo(dst);
+
+		 for(int i  = 0; i < count; i++ ) {
+			Mat star = shape.clone();
+			Mat starImage = new Mat(src.size(),CvType.CV_32FC3);
+			double size = 2.0 * Math.random();
+			double angle = Math.PI * Math.random();
+			matrix.put(0, 0, size * Math.cos(angle));
+			matrix.put(0, 1, 0  * - Math.sin(angle));
+			matrix.put(1, 0, 0  * Math.sin(angle));
+			matrix.put(1, 1, size * Math.cos(angle));
+			matrix.put(0, 2, Math.random() * src.cols());
+			matrix.put(1, 2, Math.random() * src.rows());
+			ImageProcessor.convert(star, star, -150 *  Math.random(), -150 * Math.random(),-150 * Math.random());
+			Imgproc.GaussianBlur(star, star, new Size(9,9), 10);
+			Imgproc.warpAffine(star,starImage, matrix, src.size(), Imgproc.INTER_LINEAR, Core.BORDER_TRANSPARENT, new Scalar(0,0,0,0) );
+			Core.add(dst, starImage, dst);
+		 }
+
 	 }
 
 	 public static void filter(Mat src, Mat dst, int bulerLevel) {
