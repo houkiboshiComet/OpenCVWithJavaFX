@@ -10,10 +10,14 @@ import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
+import org.opencv.core.MatOfRect;
+import org.opencv.core.Point;
+import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
+import org.opencv.objdetect.CascadeClassifier;
 
 import javafx.scene.image.Image;
 
@@ -65,6 +69,20 @@ public class ImageProcessor {
 		 return result;
 	 }
 
+	 public static void detect(Mat src, Mat dst, String xml, Scalar color, int thickness ) {
+
+		 src.copyTo(dst);
+		 CascadeClassifier faceDetector = new CascadeClassifier(xml);
+		 MatOfRect faces = new MatOfRect();
+		 faceDetector.detectMultiScale(dst, faces);
+	        for (Rect rect : faces.toArray()) {
+	            Imgproc.rectangle(
+	            		dst,
+	                    new Point(rect.x, rect.y),
+	                    new Point(rect.x + rect.width, rect.y + rect.height),
+	                    color,thickness);
+	        }
+	 }
 
 	 public static void toEdgeImage(Mat src, Mat dst, boolean blackEdge, int threah) {
 		 Imgproc.cvtColor(src, dst, Imgproc.COLOR_RGB2GRAY);
@@ -131,7 +149,6 @@ public class ImageProcessor {
 		 }
 	 }
 
-
 	 public static void glow(Mat src, Mat dst, int intensity) {
 		 Mat blur = new Mat(src.height(),src.width(), CvType.CV_8UC3);
 
@@ -157,13 +174,6 @@ public class ImageProcessor {
 						rgb_src[2] = rgb_blur[2];
 					}
 					dst.put(y, x, rgb_src);
-					/*
-					if( rgb_src[0] + rgb_src[1] + rgb_src[2]
-							> rgb_blur[0] +rgb_blur[1] + rgb_blur[2] ) {
-						dst.put(y, x, rgb_src);
-					} else {
-						dst.put(y, x, rgb_blur);
-					}*/
 				}
 			}
 	 }
@@ -219,7 +229,7 @@ public class ImageProcessor {
 
 		 for(int i  = 0; i < count; i++ ) {
 			Mat star = shape.clone();
-			Mat starImage = new Mat(src.size(),CvType.CV_32FC3);
+			Mat starImage = new Mat(src.size(),CvType.CV_8UC3);
 			double size = 2.0 * Math.random();
 			double angle = Math.PI * Math.random();
 			matrix.put(0, 0, size * Math.cos(angle));
@@ -232,6 +242,54 @@ public class ImageProcessor {
 			Imgproc.GaussianBlur(star, star, new Size(9,9), 10);
 			Imgproc.warpAffine(star,starImage, matrix, src.size(), Imgproc.INTER_LINEAR, Core.BORDER_TRANSPARENT, new Scalar(0,0,0,0) );
 			Core.add(dst, starImage, dst);
+		 }
+
+	 }
+
+	 public static void addSnow(Mat src, Mat dst, int count ) {
+		 Mat matrix = new Mat(2,3,CvType.CV_32F);
+		 src.copyTo(dst);
+		 Mat circle = new Mat(40, 40,CvType.CV_8UC3, new Scalar(0,0,0));
+		 Imgproc.circle(circle, new Point(20,20), 15, new Scalar(255,255,255),-1,Imgproc.LINE_AA,0);
+
+		 for(int i  = 0; i < count; i++ ) {
+			Mat bubble = circle.clone();
+			Mat bubbleImage = new Mat(src.size(),CvType.CV_8UC3);
+			double size = Math.random();
+			double angle = Math.PI * (Math.random() / 4 );
+			matrix.put(0, 0, size * Math.cos(angle) * 2);
+			matrix.put(0, 1, size  * - Math.sin(angle));
+			matrix.put(1, 0, size  * Math.sin(angle) * 2);
+			matrix.put(1, 1, size * Math.cos(angle));
+			matrix.put(0, 2, Math.random() * src.cols());
+			matrix.put(1, 2, Math.random() * src.rows());
+			ImageProcessor.convert(bubble, bubble, - 50 * Math.random(), -50 * Math.random(), -30 * Math.random());
+			Imgproc.GaussianBlur(bubble, bubble, new Size(9, 9), 10);
+			Imgproc.warpAffine(bubble,bubbleImage, matrix, src.size(), Imgproc.INTER_LINEAR, Core.BORDER_TRANSPARENT, new Scalar(0,0,0,0) );
+			Core.add(dst, bubbleImage, dst);
+		 }
+
+	 }
+
+
+	 public static void addBubble (Mat src, Mat dst, int count ) {
+		 Mat matrix = new Mat(2,3,CvType.CV_32F);
+		 src.copyTo(dst);
+		 Mat circle = new Mat(50, 50,CvType.CV_8UC3, new Scalar(0,0,0));
+		 Imgproc.circle(circle, new Point(25,25), 20, new Scalar(150,100,100),-1,Imgproc.LINE_AA,0);
+
+		 for(int i  = 0; i < count; i++ ) {
+			Mat bubble = circle.clone();
+			Mat bubbleImage = new Mat(src.size(),CvType.CV_8UC3);
+			double size = 2.0 * Math.random();
+			matrix.put(0, 0, size);
+			matrix.put(1, 1, size);
+			matrix.put(0, 2, Math.random() * src.cols());
+			matrix.put(1, 2, Math.random() * src.rows());
+			ImageProcessor.convert(bubble, bubble, -100 * Math.random(), -100 * Math.random(),-100 * Math.random());
+			Imgproc.GaussianBlur(bubble, bubble, new Size(15, 15), 10);
+			Imgproc.warpAffine(bubble,bubbleImage, matrix, src.size(), Imgproc.INTER_LINEAR, Core.BORDER_TRANSPARENT, new Scalar(0,0,0,0) );
+			Core.add(dst, bubbleImage, dst);
 		 }
 
 	 }

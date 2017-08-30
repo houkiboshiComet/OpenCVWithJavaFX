@@ -1,7 +1,9 @@
 package image.effect;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -87,8 +89,10 @@ public class SampleController implements Initializable {
 		         new ExtensionFilter("Bitmap Image", "*.bmp")
 		         );
 		 File file = fileChooser.showSaveDialog(null);
-		 fileChooser.setInitialDirectory(file.getParentFile());
+
 		 if(file != null) {
+			 fileChooser.setInitialDirectory(file.getParentFile());
+
 			 Mat saveImg = mat.clone();
 			 ImageProcessor.synthesize(mat, saveImg, allStamp, allStampBack, 50);
 
@@ -138,7 +142,6 @@ public class SampleController implements Initializable {
 			 stampView.setImage(ImageProcessor.toImage(heartStamp));
 			 stampView.setVisible(true);
 			 break;
-
 		 case "None":
 		 default:
 			 stampView.setVisible(false);
@@ -189,6 +192,7 @@ public class SampleController implements Initializable {
 						(int) (( event.getY() / imageView.getFitHeight()) * mat.height()- (heartStamp.rows() / 2)));
 
 			 break;
+
 		 case "None":
 		 default:
 			 return;
@@ -254,6 +258,27 @@ public class SampleController implements Initializable {
 				ImageProcessor.addStars(mat,mat,starShape,(int) (value / 2.0));
 				break;
 
+			case "Face Detecting":
+				/* openCVでjar中のurlを扱えないためのファイルコピー */
+				URL url =  getClass().getClassLoader().getResource("haarcascade_frontalface_default.xml");
+				copyUrlToFile(url,"temp.xml");
+		        ImageProcessor.detect(mat, mat, "temp.xml", new Scalar(0, 255 ,0), (int) value / 30 + 1);
+
+		        try {
+					Files.delete(Paths.get("temp.xml"));
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				 break;
+
+			case "Bubble":
+				ImageProcessor.addBubble(mat,mat, (int) (value / 2.0));
+				break;
+
+			case "Snowstorm":
+				ImageProcessor.addSnow(mat,mat, (int) (value));
+				break;
+
 			case "None":
 			default:
 				break;
@@ -261,6 +286,22 @@ public class SampleController implements Initializable {
 		 }
 		 base = mat.clone(); /* 以降画像効果を引き継げるようbaseにコピー */
 		 updateImage();
+	 }
+
+	 public static void copyUrlToFile(URL url, String newPath) {
+		 try {
+				FileOutputStream out = new FileOutputStream(newPath);
+				InputStream input = url.openStream();
+				while(true) {
+					int read = input.read();
+					if (read == -1) break;
+					out.write(read);
+				}
+				out.close();
+			}
+			catch(Exception e) {
+				e.printStackTrace();
+			}
 	 }
 
 	 @FXML
@@ -272,13 +313,13 @@ public class SampleController implements Initializable {
 	 public void imageSelect(ActionEvent event) {
 		 fileChooser.getExtensionFilters().clear();
 		 fileChooser.getExtensionFilters().addAll(
-		         new ExtensionFilter("Image Files", "*.png", "*.jpg", "*.bmp")
+		         new ExtensionFilter("Image Files", "*.png", "*.jpg", "*.bmp","*.jpeg")
 		         );
 
 		 File file = fileChooser.showOpenDialog(null);
-		 fileChooser.setInitialDirectory(file.getParentFile());
-         if (file != null) {
 
+         if (file != null) {
+        	 fileChooser.setInitialDirectory(file.getParentFile());
         	 try {
         		/* Imgcodecs.imreadを用いて読み込むと、utf-16の日本語のパスを扱えないため */
         	 		Files.copy(file.toPath(), Paths.get("temp.bmp"),StandardCopyOption.REPLACE_EXISTING);
@@ -342,6 +383,9 @@ public class SampleController implements Initializable {
 			    //"Glow Green",
 			    //"Glow Blue",
 			    "Sepia",
+			    "Face Detecting",
+			    "Snowstorm",
+			    "Bubble",
 			    "Stars"
 			);
 		comboBox.setValue("None");

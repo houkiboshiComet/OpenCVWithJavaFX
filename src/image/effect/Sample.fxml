@@ -56,7 +56,7 @@
             <Label layoutX="63.0" layoutY="324.0" text="Stamp Type" />
             <Label layoutX="149.0" layoutY="180.0" text="Blur" />
             <Button layoutX="46.0" layoutY="494.0" mnemonicParsing="false" onAction="#onResetStamp" prefHeight="36.0" prefWidth="105.0" text="Reset Stamp" />
-            <HBox alignment="CENTER" layoutX="18.0" layoutY="376.0" prefHeight="100.0" prefWidth="171.0">
+            <HBox alignment="CENTER" layoutX="23.0" layoutY="374.0" prefHeight="100.0" prefWidth="162.0" style="-fx-background-color: white;">
                <children>
                   <ImageView fx:id="stampView" fitHeight="98.0" fitWidth="91.0" nodeOrientation="INHERIT" pickOnBounds="true" preserveRatio="true" />
                </children>
