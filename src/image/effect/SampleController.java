@@ -71,7 +71,8 @@ public class SampleController implements Initializable {
 	private Mat allStamp = null;
 	private Mat allStampBack = null;
 
-	private Mat goodStamp, twinckeStamp, smileStamp, heartStamp;
+	private Mat goodStamp, twinckeStamp, sunStamp, smileStamp, heartStamp, dogStamp, angryStamp, catStamp,
+	pieceStamp, punchStamp, developStamp;
 	private Mat starShape;
 
 	final FileChooser fileChooser = new FileChooser();
@@ -94,7 +95,7 @@ public class SampleController implements Initializable {
 			 fileChooser.setInitialDirectory(file.getParentFile());
 
 			 Mat saveImg = mat.clone();
-			 ImageProcessor.synthesize(mat, saveImg, allStamp, allStampBack, 50);
+			 ImageProcessor.synthesize(mat, saveImg, allStamp, allStampBack);
 
 			 /* Imgcodecs.imwriteを用いると、utf-16の日本語のパスを扱えないため */
  	 		try {
@@ -126,14 +127,14 @@ public class SampleController implements Initializable {
 		 case "Smile":
 			 stampView.setImage(ImageProcessor.toImage(smileStamp));
 			 stampView.setVisible(true);
-
 			 break;
+
 		 case "Twinkle":
 			 stampView.setImage(ImageProcessor.toImage(twinckeStamp));
 			 stampView.setVisible(true);
 			 break;
 
-		 case "Good":
+		 case "Good Sign":
 			 stampView.setImage(ImageProcessor.toImage(goodStamp));
 			 stampView.setVisible(true);
 			 break;
@@ -142,6 +143,42 @@ public class SampleController implements Initializable {
 			 stampView.setImage(ImageProcessor.toImage(heartStamp));
 			 stampView.setVisible(true);
 			 break;
+
+		 case "Angry":
+			 stampView.setImage(ImageProcessor.toImage(angryStamp));
+			 stampView.setVisible(true);
+			 break;
+
+		 case "Dog":
+			 stampView.setImage(ImageProcessor.toImage(dogStamp));
+			 stampView.setVisible(true);
+			 break;
+
+		 case "Cat":
+			 stampView.setImage(ImageProcessor.toImage(catStamp));
+			 stampView.setVisible(true);
+			 break;
+
+		 case "Sun":
+			 stampView.setImage(ImageProcessor.toImage(sunStamp));
+			 stampView.setVisible(true);
+			 break;
+
+		 case "Piece Sign":
+			 stampView.setImage(ImageProcessor.toImage(pieceStamp));
+			 stampView.setVisible(true);
+			 break;
+
+		 case "Punch":
+			 stampView.setImage(ImageProcessor.toImage(punchStamp));
+			 stampView.setVisible(true);
+			 break;
+
+		 case "Develop":
+			 stampView.setImage(ImageProcessor.toImage(developStamp));
+			 stampView.setVisible(true);
+			 break;
+
 		 case "None":
 		 default:
 			 stampView.setVisible(false);
@@ -169,38 +206,63 @@ public class SampleController implements Initializable {
 	 @FXML
 	 public void onImageClicked(MouseEvent event) {
 		 Mat png = null;
+		 Mat stamp = null;
 		 switch (stampTypes.getValue()) {
 		 case "Smile":
-			 png = ImageProcessor.extend(smileStamp, mat.size(),
-						(int) (( event.getX() / imageView.getFitWidth()) * mat.width() - (smileStamp.cols() / 2)),
-						(int) (( event.getY() / imageView.getFitHeight()) * mat.height()- (smileStamp.rows() / 2)));
+			 stamp = smileStamp;
 			 break;
+
 		 case "Twinkle":
-			 png = ImageProcessor.extend(twinckeStamp, mat.size(),
-						(int) (( event.getX() / imageView.getFitWidth()) * mat.width() - (twinckeStamp.cols() / 2)),
-						(int) (( event.getY() / imageView.getFitHeight()) * mat.height()- (twinckeStamp.rows() / 2)));
-			 break;
-		 case "Good":
-			 png = ImageProcessor.extend(goodStamp, mat.size(),
-						(int) (( event.getX() / imageView.getFitWidth()) * mat.width() - (goodStamp.cols() / 2)),
-						(int) (( event.getY() / imageView.getFitHeight()) * mat.height()- (goodStamp.rows() / 2)));
+			 stamp = twinckeStamp;
 			 break;
 
 		 case "Heart":
-			 png = ImageProcessor.extend(heartStamp, mat.size(),
-						(int) (( event.getX() / imageView.getFitWidth()) * mat.width() - (heartStamp.cols() / 2)),
-						(int) (( event.getY() / imageView.getFitHeight()) * mat.height()- (heartStamp.rows() / 2)));
+			 stamp = heartStamp;
+			 break;
 
+		 case "Angry":
+			 stamp = angryStamp;
+			 break;
+
+		 case "Dog":
+			 stamp = dogStamp;
+			 break;
+
+		 case "Cat":
+			 stamp = catStamp;
+			 break;
+
+		 case "Good Sign":
+			 stamp = goodStamp;
+			 break;
+
+		 case "Sun":
+			 stamp = sunStamp;
+			 break;
+
+		 case "Piece Sign":
+			 stamp = pieceStamp;
+			 break;
+
+		 case "Punch":
+			 stamp = punchStamp;
+			 break;
+
+		 case "Develop":
+			 stamp = developStamp;
 			 break;
 
 		 case "None":
 		 default:
 			 return;
 		 }
+		 png = ImageProcessor.extend(stamp, mat.size(),
+					(int) (( event.getX() / imageView.getFitWidth()) * mat.width() - (stamp.cols() / 2)),
+					(int) (( event.getY() / imageView.getFitHeight()) * mat.height()- (stamp.rows() / 2)));
 		 Mat splitedStamp = new Mat();
 		 Mat back = new Mat();
 		 ImageProcessor.split(png, splitedStamp, back);
-		 ImageProcessor.synthesize(allStamp, allStamp, splitedStamp, back, 0);
+		 ImageProcessor.synthesize(allStamp, allStamp, splitedStamp, back);
 		 Core.add(allStampBack, back, allStampBack);
 
 		 updateImage();
@@ -208,7 +270,7 @@ public class SampleController implements Initializable {
 
 	 private void updateImage() {
 		 Mat dispImage = mat.clone();
-		 ImageProcessor.synthesize(mat, dispImage, allStamp, allStampBack, 50);
+		 ImageProcessor.synthesize(mat, dispImage, allStamp, allStampBack);
 		 imageView.setImage(ImageProcessor.toImage(dispImage));
 	 }
 	 @FXML
@@ -236,7 +298,7 @@ public class SampleController implements Initializable {
 
 			case "Black Pencil":
 				ImageProcessor.toEdgeImage(mat, mat, true,  200 - (int) value);
-				break;//toEdgeColorImage
+				break;
 
 			case "Color Pencil":
 				ImageProcessor.toEdgeColorImage(mat, mat,  200 - (int) value);
@@ -368,7 +430,7 @@ public class SampleController implements Initializable {
 
 	@Override
 	public void initialize(URL arg0, ResourceBundle arg1) {
-		//clockLabel.setText(LocalDateTime.now().toString());
+
 		launchClock();
 		colorPicker.setValue(Color.BLACK);
 		comboBox.getItems().addAll(
@@ -379,9 +441,6 @@ public class SampleController implements Initializable {
 			    "Color Pencil",
 			    "Cartoon",
 			    "Glow",
-			    //"Glow Red",
-			    //"Glow Green",
-			    //"Glow Blue",
 			    "Sepia",
 			    "Face Detecting",
 			    "Snowstorm",
@@ -393,9 +452,17 @@ public class SampleController implements Initializable {
 		stampTypes.getItems().addAll(
 			    "None",
 			    "Smile",
+			    "Angry",
+			    "Sun",
 			    "Twinkle",
 			    "Heart",
-			    "Good"
+			    "Dog",
+			    "Cat",
+			    "Sun",
+			    "Good Sign",
+			    "Piece Sign",
+			    "Punch"
+			    ,"Develop"
 			);
 		stampTypes.setValue("None");
 		try {
@@ -417,6 +484,27 @@ public class SampleController implements Initializable {
 
 			url=  getClass().getClassLoader().getResource("heart.bmp");
 			heartStamp =  ImageProcessor.toPng(ImageIO.read(url));
+
+			url=  getClass().getClassLoader().getResource("dog.bmp");
+			dogStamp =  ImageProcessor.toPng(ImageIO.read(url));
+
+			url=  getClass().getClassLoader().getResource("cat.bmp");
+			catStamp =  ImageProcessor.toPng(ImageIO.read(url));
+
+			url=  getClass().getClassLoader().getResource("angry.bmp");
+			angryStamp =  ImageProcessor.toPng(ImageIO.read(url));
+
+			url=  getClass().getClassLoader().getResource("piece.bmp");
+			pieceStamp =  ImageProcessor.toPng(ImageIO.read(url));
+
+			url=  getClass().getClassLoader().getResource("punch.bmp");
+			punchStamp =  ImageProcessor.toPng(ImageIO.read(url));
+
+			url=  getClass().getClassLoader().getResource("sun.bmp");
+			sunStamp =  ImageProcessor.toPng(ImageIO.read(url));
+
+			url=  getClass().getClassLoader().getResource("surprise.bmp");
+			developStamp =  ImageProcessor.toPng(ImageIO.read(url));
 
 		} catch (IOException e) {
 			e.printStackTrace();
