@@ -72,8 +72,8 @@ public class SampleController implements Initializable {
 	private Mat allStampBack = null;
 
 	private Mat goodStamp, twinckeStamp, sunStamp, smileStamp, heartStamp, dogStamp, angryStamp, catStamp,
-	pieceStamp, punchStamp, developStamp;
-	private Mat starShape;
+	pieceStamp, punchStamp, surpriseStamp;
+	private Mat starShape, selectedStamp;
 
 	final FileChooser fileChooser = new FileChooser();
 
@@ -125,64 +125,59 @@ public class SampleController implements Initializable {
 	 public void stampSelected(ActionEvent event) {
 		 switch (stampTypes.getValue()) {
 		 case "Smile":
-			 stampView.setImage(ImageProcessor.toImage(smileStamp));
-			 stampView.setVisible(true);
+			 selectedStamp = smileStamp;
 			 break;
 
 		 case "Twinkle":
-			 stampView.setImage(ImageProcessor.toImage(twinckeStamp));
-			 stampView.setVisible(true);
+			 selectedStamp = twinckeStamp;
 			 break;
 
 		 case "Good Sign":
-			 stampView.setImage(ImageProcessor.toImage(goodStamp));
-			 stampView.setVisible(true);
+			 selectedStamp = goodStamp;
 			 break;
 
 		 case "Heart":
-			 stampView.setImage(ImageProcessor.toImage(heartStamp));
-			 stampView.setVisible(true);
+			 selectedStamp = heartStamp;
 			 break;
 
 		 case "Angry":
-			 stampView.setImage(ImageProcessor.toImage(angryStamp));
-			 stampView.setVisible(true);
+			 selectedStamp = angryStamp;
 			 break;
 
+		 case "Surprise":
+			 selectedStamp = surpriseStamp;
+			 break;
+
+
 		 case "Dog":
-			 stampView.setImage(ImageProcessor.toImage(dogStamp));
-			 stampView.setVisible(true);
+			 selectedStamp = dogStamp;
 			 break;
 
 		 case "Cat":
-			 stampView.setImage(ImageProcessor.toImage(catStamp));
-			 stampView.setVisible(true);
+			 selectedStamp = catStamp;
 			 break;
 
 		 case "Sun":
-			 stampView.setImage(ImageProcessor.toImage(sunStamp));
-			 stampView.setVisible(true);
+			 selectedStamp = sunStamp;
 			 break;
 
 		 case "Piece Sign":
-			 stampView.setImage(ImageProcessor.toImage(pieceStamp));
-			 stampView.setVisible(true);
+			selectedStamp = pieceStamp;
 			 break;
 
 		 case "Punch":
-			 stampView.setImage(ImageProcessor.toImage(punchStamp));
-			 stampView.setVisible(true);
-			 break;
-
-		 case "Develop":
-			 stampView.setImage(ImageProcessor.toImage(developStamp));
-			 stampView.setVisible(true);
+			 selectedStamp = punchStamp;
 			 break;
 
 		 case "None":
 		 default:
+			 selectedStamp = null;
 			 stampView.setVisible(false);
 			 break;
+		 }
+		 if( selectedStamp != null ) {
+			 stampView.setImage(ImageProcessor.toImage(selectedStamp));
+			 stampView.setVisible(true);
 		 }
 	 }
 
@@ -205,67 +200,20 @@ public class SampleController implements Initializable {
 
 	 @FXML
 	 public void onImageClicked(MouseEvent event) {
-		 Mat png = null;
-		 Mat stamp = null;
-		 switch (stampTypes.getValue()) {
-		 case "Smile":
-			 stamp = smileStamp;
-			 break;
-
-		 case "Twinkle":
-			 stamp = twinckeStamp;
-			 break;
-
-		 case "Heart":
-			 stamp = heartStamp;
-			 break;
-
-		 case "Angry":
-			 stamp = angryStamp;
-			 break;
-
-		 case "Dog":
-			 stamp = dogStamp;
-			 break;
-
-		 case "Cat":
-			 stamp = catStamp;
-			 break;
-
-		 case "Good Sign":
-			 stamp = goodStamp;
-			 break;
-
-		 case "Sun":
-			 stamp = sunStamp;
-			 break;
-
-		 case "Piece Sign":
-			 stamp = pieceStamp;
-			 break;
-
-		 case "Punch":
-			 stamp = punchStamp;
-			 break;
-
-		 case "Develop":
-			 stamp = developStamp;
-			 break;
-
-		 case "None":
-		 default:
+		 if(selectedStamp == null) {
 			 return;
 		 }
-		 png = ImageProcessor.extend(stamp, mat.size(),
-					(int) (( event.getX() / imageView.getFitWidth()) * mat.width() - (stamp.cols() / 2)),
-					(int) (( event.getY() / imageView.getFitHeight()) * mat.height()- (stamp.rows() / 2)));
+
+		 Mat png = ImageProcessor.extend(selectedStamp, mat.size(),
+					(int) (( event.getX() / imageView.getFitWidth()) * mat.width() - (selectedStamp.cols() / 2)),
+					(int) (( event.getY() / imageView.getFitHeight()) * mat.height()- (selectedStamp.rows() / 2)));
 		 Mat splitedStamp = new Mat();
 		 Mat back = new Mat();
 		 ImageProcessor.split(png, splitedStamp, back);
 		 ImageProcessor.synthesize(allStamp, allStamp, splitedStamp, back);
 		 Core.add(allStampBack, back, allStampBack);
-
 		 updateImage();
+
 	 }
 
 	 private void updateImage() {
@@ -285,7 +233,6 @@ public class SampleController implements Initializable {
 
 		 if( 0 < value ) {
 			 String effect = comboBox.getValue();
-			 System.out.println(effect);
 
 			switch (effect) {
 			case "Sketchi":
@@ -452,6 +399,7 @@ public class SampleController implements Initializable {
 		stampTypes.getItems().addAll(
 			    "None",
 			    "Smile",
+			    "Surprise",
 			    "Angry",
 			    "Sun",
 			    "Twinkle",
@@ -462,7 +410,6 @@ public class SampleController implements Initializable {
 			    "Good Sign",
 			    "Piece Sign",
 			    "Punch"
-			    ,"Develop"
 			);
 		stampTypes.setValue("None");
 		try {
@@ -504,7 +451,7 @@ public class SampleController implements Initializable {
 			sunStamp =  ImageProcessor.toPng(ImageIO.read(url));
 
 			url=  getClass().getClassLoader().getResource("surprise.bmp");
-			developStamp =  ImageProcessor.toPng(ImageIO.read(url));
+			surpriseStamp =  ImageProcessor.toPng(ImageIO.read(url));
 
 		} catch (IOException e) {
 			e.printStackTrace();

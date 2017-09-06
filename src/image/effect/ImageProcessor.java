@@ -74,6 +74,7 @@ public class ImageProcessor {
 		 src.copyTo(dst);
 		 CascadeClassifier faceDetector = new CascadeClassifier(xml);
 		 MatOfRect faces = new MatOfRect();
+
 		 faceDetector.detectMultiScale(dst, faces);
 	        for (Rect rect : faces.toArray()) {
 	            Imgproc.rectangle(
